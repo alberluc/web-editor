@@ -1,0 +1,28 @@
+.EditorPage{
+    padding: 50px 0;
+    /*font-family: 'Roboto Slab', serif;*/
+    font-family: 'Merriweather', serif;
+}
+
+.EditorPage:focus{
+    outline: none;
+}
+
+.EditorPage > *:first-child{
+    margin-top: 0;
+}
+
+.EditorPage > *:last-child{
+    margin-bottom: 0;
+}
+
+.EditorPage > p{
+    line-height: 1.6;
+}
+
+.EditorPage > h1{
+    margin: 70px 0 38px;
+}
+.EditorPage > h3{
+    margin: 50px 0 20px;
+}

@@ -1,0 +1,38 @@
+.EditorSelectionTools{
+    --border-size: 1px;
+    position: absolute;
+    top: 5px;
+    left: 0;
+    display: flex;
+    border-radius: 3px;
+    margin: 0;
+    background-color: var(--light-grey);
+    padding: var(--border-size);
+    list-style: none;
+}
+
+.EditorSelectionTools:before{
+    content: '';
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+
+    background-color: var(--light-grey);
+    border-radius: 1px;
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.EditorSelectionTools-item{
+    z-index: 10;
+    width: 40px;
+    height: 40px;
+    background-color: #ffffff;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.EditorSelectionTools-item:not(:last-child) {
+    margin-right: var(--border-size);
+}
