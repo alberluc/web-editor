@@ -1,13 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useApolloClient, useQuery } from '@apollo/react-hooks'
-import './EditorPage.css'
-import { saveState } from '../../../index'
 import gql from 'graphql-tag'
-import {
-    findBlockSelection
-} from './../helpers'
 import EditorSelectionTools from '../SelectionTools/EditorSelectionTools'
 import EditorBlockTools from '../BlockTools/EditorBlockTools'
+
+import './EditorPage.css'
 
 const GET_EDITOR_INFO = gql`
     {
@@ -45,6 +42,22 @@ function EditorPage(props) {
     const [currentBlock, setCurrentBlock] = useState('')
     const [selectionTools, setSelectionTools] = useState(null)
     const [blockTools, setBlockTools] = useState(null)
+
+    function findBlockSelection() {
+        let targetElement = document.getSelection().anchorNode
+        if (!targetElement) return null
+        const parents = []
+        const parentsTags = []
+        do {
+            parentsTags.push(targetElement.tagName)
+            parents.push(targetElement)
+            targetElement = targetElement.parentElement
+        } while (targetElement.parentElement && targetElement)
+
+        if (parentsTags.indexOf('H1') !== -1) return parents[parentsTags.indexOf('H1')]
+        if (parentsTags.indexOf('H3') !== -1) return parents[parentsTags.indexOf('H3')]
+        if (parentsTags.indexOf('P') !== -1) return parents[parentsTags.indexOf('P')]
+    }
 
     function onPaste(e) {
         e.preventDefault();
@@ -87,11 +100,11 @@ function EditorPage(props) {
     }
 
     function onSelectionChange() {
-        saveState(client,{ data: { selectedText: Math.random() } })
+        client.writeData({ data: { selectedText: Math.random() } })
 
         const blockElement = findBlockSelection()
         if (!blockElement || !isFocus) {
-            saveState(client,{
+            client.writeData({
                 data: {
                     currentAlign: '',
                     currentBlock: '',
@@ -116,12 +129,12 @@ function EditorPage(props) {
     }
 
     function onFocus(e) {
-        saveState(client,{ data: { isEditorFocus: true }})
+        client.writeData({ data: { isEditorFocus: true }})
         setIsFocus(true)
     }
 
     function onBlur() {
-        saveState(client,{ data: { isEditorFocus: false }})
+        client.writeData({ data: { isEditorFocus: false }})
         setIsFocus(false)
         setSelectionTools(null)
         setBlockTools(null)
@@ -147,12 +160,12 @@ function EditorPage(props) {
 
     useEffect(() => {
         if (currentBlock.tagName) {
-            saveState(client,{ data: { currentBlock: currentBlock.tagName.toLowerCase() }})
+            client.writeData({ data: { currentBlock: currentBlock.tagName.toLowerCase() }})
         }
     }, [currentBlock])
 
     useEffect(() => {
-        saveState(client,{ data: { currentAlign } })
+        client.writeData({ data: { currentAlign } })
     }, [currentAlign])
 
     useEffect(() => {

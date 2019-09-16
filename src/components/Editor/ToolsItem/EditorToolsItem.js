@@ -2,8 +2,6 @@ import { useApolloClient, useQuery } from '@apollo/react-hooks'
 import React, { useState, useEffect } from 'react'
 import './EditorToolsItem.css'
 import gql from 'graphql-tag'
-import { saveState } from '../../../index'
-import { addBlockTools, findBlockSelection, removeBlockTools } from './../helpers'
 
 const GET_EDITOR_INFO = gql`
     {
@@ -44,18 +42,16 @@ function EditorToolsItem(props) {
         document.execCommand(...props.commandArgs)
         if (commandName === 'formatBlock') {
             if (isSelected) {
-                saveState(client, { data: { currentBlock: 'p' } })
+                client.writeData( { data: { currentBlock: 'p' } })
                 document.execCommand('formatBlock', false, '<p>')
             } else {
-                saveState(client, { data: { currentBlock: commandName } })
+                client.writeData( { data: { currentBlock: commandName } })
             }
         }
         if (isAlignCommand) {
-            saveState(client, { data: { currentAlign: commandName } })
+            client.writeData( { data: { currentAlign: commandName } })
         }
         forceUpdate({})
-
-        const blockContainer = findBlockSelection()
     }
 
     return (
