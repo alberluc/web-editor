@@ -1,68 +1,52 @@
-import { useApolloClient, useQuery } from '@apollo/react-hooks'
 import React, { useState, useEffect } from 'react'
-import './EditorToolsItem.css'
-import gql from 'graphql-tag'
+import { useGlobalState } from '../../../hooks/useGlobalState'
 
-const GET_EDITOR_INFO = gql`
-    {
-        isEditorFocus @client
-        selectedText @client
-        currentAlign @client
-        currentBlock @client
-        selectedStyle @client
-    }
-`
+import './EditorToolsItem.css'
+import Button from '../../UI/Button/Button'
+import Checkbox from '../../UI/Checkbox/Checkbox'
 
 function EditorToolsItem(props) {
-    const { data: {
-        selectedStyle = [],
-        currentBlock,
-        currentAlign,
-        selectedText,
-        isEditorFocus
-    } = {} } = useQuery(GET_EDITOR_INFO)
+    const [state, dispatch] = useGlobalState()
 
     const [_, forceUpdate] = useState({})
-    const client = useApolloClient()
 
     const commandName = props.commandArgs[0]
     const commandArg = props.commandArgs[2]
     const classList = ["EditorTools-item", props.className]
 
     const isAlignCommand = ['justifyFull', 'justifyLeft', 'justifyRight'].indexOf(commandName) !== -1
-    const isCurrentBlockCommand = commandName === 'formatBlock' && commandArg === `<${currentBlock}>`
+    const isCurrentBlockCommand = commandName === 'formatBlock' && commandArg === `<${state.block}>`
     const isEnableCommand = document.queryCommandState(commandName)
     const isSelected = isCurrentBlockCommand || isEnableCommand
 
-    if (isSelected && isEditorFocus) {
-        classList.push('EditorTools-item-selected')
-    }
-
     function onClick() {
+        console.log('exec ', props.commandArgs)
         document.execCommand(...props.commandArgs)
         if (commandName === 'formatBlock') {
+            console.log(isSelected)
             if (isSelected) {
-                client.writeData( { data: { currentBlock: 'p' } })
+                dispatch({ type: 'SET_BLOCK', payload: 'p' })
                 document.execCommand('formatBlock', false, '<p>')
             } else {
-                client.writeData( { data: { currentBlock: commandName } })
+                dispatch({ type: 'SET_BLOCK', payload: commandName })
             }
         }
         if (isAlignCommand) {
-            client.writeData( { data: { currentAlign: commandName } })
+            dispatch({ type: 'SET_ALIGNMENT', payload: commandName })
         }
         forceUpdate({})
     }
 
     return (
-        <button
+        <Checkbox
+            selected={isSelected && state.isEditorFocus}
             title={props.title}
             className={classList.join(' ')}
-            onClick={onClick}
+            onChange={onClick}
             onMouseDown={event => event.preventDefault()}
         >
             {props.children}
-        </button>
+        </Checkbox>
     )
 }
 

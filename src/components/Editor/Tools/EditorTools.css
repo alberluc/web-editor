@@ -23,3 +23,8 @@
 .EditorTools-separator + .EditorTools-item{
     margin-left: 0 !important;
 }
+
+.EditorTools-Save{
+    margin-left: auto;
+    align-self: flex-end;
+}

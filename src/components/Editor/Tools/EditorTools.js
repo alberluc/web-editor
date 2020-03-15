@@ -13,6 +13,7 @@ import {
     faItalic
 } from '@fortawesome/free-solid-svg-icons'
 import EditorToolsItem from './../ToolsItem/EditorToolsItem'
+import Button from '../../UI/Button/Button'
 
 function EditorTools(props) {
     const [_, forceUpdate] = useState(null)
@@ -72,6 +73,7 @@ function EditorTools(props) {
                 <FontAwesomeIcon icon={faHeading}/>
                 <span>3</span>
             </EditorToolsItem>
+            <Button className={"EditorTools-Save"}>Enregistrer</Button>
         </div>
     )
 }

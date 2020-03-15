@@ -8,6 +8,8 @@ function EditorSelectionTools(props) {
     const y = Math.round(window.scrollY  + props.bounds.y + props.bounds.height)
     const transform = `translate(calc(${x}px - 50%), calc(${y}px + 10px))`
 
+    return null
+
     return ReactDOM.createPortal(
         <ul contentEditable={false} style={{ transform }} className={'EditorSelectionTools'}>
             <li className={'EditorSelectionTools-item'}/>

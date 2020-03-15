@@ -1,51 +1,20 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { useApolloClient, useQuery } from '@apollo/react-hooks'
-import gql from 'graphql-tag'
 import EditorSelectionTools from '../SelectionTools/EditorSelectionTools'
 import EditorBlockTools from '../BlockTools/EditorBlockTools'
+import { useGlobalState } from '../../../hooks/useGlobalState'
 
 import './EditorPage.css'
 
-const GET_EDITOR_INFO = gql`
-    {
-        selectedText @client
-        currentAlign @client
-        currentBlock @client
-        selectedStyle @client
-    }
-`
-
 function EditorPage(props) {
-    //const placeholder = usePlaceholder()
-    const defaultPlaceholder = (
-        <h1
-            className={"EditorPage-placeholder"}
-            onMouseDown={e => {
-                e.stopPropagation()
-                e.preventDefault()
-                container.current.focus()
-            }}
-        >
-            <span>Titre</span>
-        </h1>
-    )
-
-    const client = useApolloClient()
+    const [state, dispatch] = useGlobalState()
     const container = useRef(null)
 
-    const { data: {
-        currentAlign
-    } = {}} = useQuery(GET_EDITOR_INFO)
-
-    const [isFocus, setIsFocus] = useState(false)
-    const [placeholder, setPlaceholder] = useState(props.children ? null : defaultPlaceholder)
-    const [currentBlock, setCurrentBlock] = useState('')
     const [selectionTools, setSelectionTools] = useState(null)
     const [blockTools, setBlockTools] = useState(null)
-
+    
     function findBlockSelection() {
         let targetElement = document.getSelection().anchorNode
-        if (!targetElement) return null
+        if (!targetElement || targetElement === container.current) return null
         const parents = []
         const parentsTags = []
         do {
@@ -57,6 +26,7 @@ function EditorPage(props) {
         if (parentsTags.indexOf('H1') !== -1) return parents[parentsTags.indexOf('H1')]
         if (parentsTags.indexOf('H3') !== -1) return parents[parentsTags.indexOf('H3')]
         if (parentsTags.indexOf('P') !== -1) return parents[parentsTags.indexOf('P')]
+        if (parentsTags.indexOf('DIV') !== -1) return parents[parentsTags.indexOf('DIV')]
     }
 
     function onPaste(e) {
@@ -66,28 +36,7 @@ function EditorPage(props) {
     }
 
     function addBlockTools(container) {
-        switch (container.tagName) {
-            case 'P': {
-                setBlockTools(
-                    <EditorBlockTools
-                        title={"Paragraphe"}
-                        container={container}
-                    />
-                )
-                break
-            }
-            case 'H1':
-            case 'H3': {
-                setBlockTools(
-                    <EditorBlockTools
-                        title={"Titre"}
-                        container={container}
-                    />
-                )
-                break
-            }
-            default: break
-        }
+        setBlockTools(<EditorBlockTools container={container}/>)
     }
 
     function addSelectionTools() {
@@ -100,26 +49,26 @@ function EditorPage(props) {
     }
 
     function onSelectionChange() {
-        client.writeData({ data: { selectedText: Math.random() } })
+        let blockEl = findBlockSelection()
 
-        const blockElement = findBlockSelection()
-        if (!blockElement || !isFocus) {
-            client.writeData({
-                data: {
-                    currentAlign: '',
-                    currentBlock: '',
-                    selectedStyle: []
-                }
-            })
+        if (!blockEl || !state.isEditorFocus) {
+            dispatch({ type: 'SET_ALIGNMENT', payload: 'justifyLeft' })
+            dispatch({ type: 'SET_BLOCK', payload: null })
+            dispatch({ type: 'SET_STYLES', payload: [] })
             return
         }
-        if (placeholder) {
-            document.execCommand('formatBlock', false, `<${blockElement.tagName.toLowerCase()}>`)
-        }
-        setCurrentBlock(blockElement)
 
-        if (!blockElement) return
-        addBlockTools(blockElement)
+        if (!blockEl) return
+        addBlockTools(blockEl)
+
+        if (blockEl.tagName === 'DIV') {
+            document.execCommand('formatBlock', false, `<p>`)
+        }
+
+        dispatch({
+            type: 'SET_BLOCK',
+            payload: blockEl.tagName.toLowerCase()
+        })
 
         if (window.getSelection().isCollapsed) {
             setSelectionTools(null)
@@ -129,27 +78,20 @@ function EditorPage(props) {
     }
 
     function onFocus(e) {
-        client.writeData({ data: { isEditorFocus: true }})
-        setIsFocus(true)
+        dispatch({ type: 'IS_EDITOR_FOCUS', payload: true })
     }
 
     function onBlur() {
-        client.writeData({ data: { isEditorFocus: false }})
-        setIsFocus(false)
+        dispatch({ type: 'IS_EDITOR_FOCUS', payload: false })
         setSelectionTools(null)
         setBlockTools(null)
-
-        const isEmptyContent = container.current.innerText.trim().length === 0
-        if (isEmptyContent) {
-            container.current.innerHTML = ''
-            setPlaceholder(defaultPlaceholder)
-        }
     }
 
     function onKeyDown(e) {
         const isEmptyContent = container.current.innerText.trim().length === 0
-        if (isEmptyContent && e.keyCode === 8) {
-            document.execCommand('insertHTML', false, `<${currentBlock.tagName.toLowerCase()}>a</${currentBlock.tagName.toLowerCase()}>`)
+        const containChildren = container.current.children.length > 1
+        if (isEmptyContent && e.keyCode === 8 && !containChildren) {
+            document.execCommand('insertHTML', false, `<${state.block}>a</${state.block}>`)
         }
         if (e.keyCode === 9) {
             document.execCommand('insertHTML', false, '&emsp;')
@@ -159,22 +101,17 @@ function EditorPage(props) {
     }
 
     useEffect(() => {
-        if (currentBlock.tagName) {
-            client.writeData({ data: { currentBlock: currentBlock.tagName.toLowerCase() }})
+        let isEmpty = !container.current.innerText.trim().length
+        if (!state.isEditorFocus && isEmpty) {
+            addPlaceholder()
         }
-    }, [currentBlock])
 
-    useEffect(() => {
-        client.writeData({ data: { currentAlign } })
-    }, [currentAlign])
-
-    useEffect(() => {
         document.addEventListener('selectionchange', onSelectionChange);
-        if (isFocus) onSelectionChange()
+        if (state.isEditorFocus) onSelectionChange()
         return () => {
             document.removeEventListener('selectionchange', onSelectionChange);
         }
-    }, [isFocus])
+    }, [state.isEditorFocus])
 
     useEffect(() => {
         if (container.current) container.current.addEventListener("paste", onPaste)
@@ -183,16 +120,41 @@ function EditorPage(props) {
         }
     }, [container])
 
+    function selectText(el) {
+        const range = document.createRange()
+        range.selectNode(el)
+        window.getSelection().removeAllRanges()
+        window.getSelection().addRange(range)
+    }
+
+    function addPlaceholder() {
+        container.current.innerHTML = '<h1 id="placeholder" class="EditorPage-placeholder">Titre...</h1>'
+    }
+
+    function removePlaceholder(el) {
+        el.removeAttribute('id')
+        el.removeAttribute('class')
+        selectText(el)
+        document.execCommand('delete', false, null)
+    }
+
+    function onMouseDown(e) {
+        const placeholder = document.getElementById('placeholder')
+        if (placeholder) removePlaceholder(placeholder)
+    }
+
     return (<>
         <div
             ref={container}
-            className={"EditorPage"}
+            className={'EditorPage'}
             contentEditable={true}
-            suppressContentEditableWarning={true}
+            autoCorrect={'off'}
+            spellCheck={false}
             onFocus={onFocus}
             onBlur={onBlur}
             onKeyDown={onKeyDown}
-        >{props.children ? props.children : placeholder}</div>
+            onMouseDown={onMouseDown}
+        />
         {selectionTools}
         {blockTools}
     </>)

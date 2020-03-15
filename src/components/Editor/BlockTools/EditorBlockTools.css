@@ -2,6 +2,7 @@
     position: absolute;
     max-height: 45px;
     top: 0;
+    left: -20px;
     display: flex;
     align-items: center;
     padding-right: 30px;
